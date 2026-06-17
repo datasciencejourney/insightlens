@@ -1,0 +1,33 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# node
+node_modules/
+build/
+dist/
+.cache/
+.eslintcache
+
+# env
+.env
+.env.local
+.env.*.local
+
+# editors
+.vscode/
+.idea/
+*.swp
+frontend/node_modules/.cache/default-development/6.pack
+frontend/node_modules/.cache/default-development/0.pack
+frontend/node_modules/.cache/default-development/3.pack
+frontend/node_modules/.cache/default-development/2.pack
