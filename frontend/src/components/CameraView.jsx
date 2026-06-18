@@ -1,10 +1,3 @@
-/*
- * CameraView
- * ----------
- * Owns the <video> element + the SVG/HTML overlay for bounding boxes.
- * The parent supplies the detection results so the same hook can drive
- * the insight panel.
- */
 import { useEffect, useRef, useState } from "react";
 import { CameraOff } from "lucide-react";
 
@@ -18,7 +11,6 @@ export default function CameraView({ facingMode, videoRef, boxes, onStateChange 
 
   const [retryCount, setRetryCount] = useState(0);
 
-  // bring up the camera stream
   useEffect(() => {
     let stream;
     async function start() {
@@ -46,7 +38,6 @@ export default function CameraView({ facingMode, videoRef, boxes, onStateChange 
     return () => stream?.getTracks().forEach(t => t.stop());
   }, [facingMode, onStateChange, retryCount]);
 
-  // keep the overlay size in sync with the rendered video for accurate bbox math
   useEffect(() => {
     function measure() {
       if (!videoRef.current || !containerRef.current) return;
@@ -65,7 +56,6 @@ export default function CameraView({ facingMode, videoRef, boxes, onStateChange 
     return () => ro.disconnect();
   }, [streamReady]);
 
-  // calculate object-cover transform so the overlay matches what the user sees
   const overlay = (() => {
     const { w, h, videoW, videoH } = renderSize;
     if (!w || !h) return { sx: 1, sy: 1, offX: 0, offY: 0 };
@@ -89,7 +79,6 @@ export default function CameraView({ facingMode, videoRef, boxes, onStateChange 
 
   return (
     <div ref={containerRef} className="absolute inset-0 bg-black overflow-hidden">
-      {/* mirror front cam so it feels natural, leave back cam un-mirrored */}
       <video
         ref={videoRef}
         playsInline
@@ -120,7 +109,6 @@ export default function CameraView({ facingMode, videoRef, boxes, onStateChange 
         </div>
       )}
 
-      {/* bounding boxes — corner brackets only, no full rect */}
       <div className="absolute inset-0 pointer-events-none">
         {boxes.map((b, i) => {
           const [x, y, w, h] = b.bbox;

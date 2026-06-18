@@ -1,11 +1,3 @@
-/*
- * useSpeech
- * ---------
- * Tiny wrapper around the browser's SpeechSynthesis API.
- * - exposes `speak(text)` and `cancel()`
- * - tracks `speaking` so the UI can pulse / animate
- * - lets us swap voice / rate / pitch from the settings sheet
- */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useSpeech({ rate = 1, pitch = 1, voiceName = null, enabled = true, lang = "en-US" } = {}) {
@@ -13,7 +5,6 @@ export function useSpeech({ rate = 1, pitch = 1, voiceName = null, enabled = tru
   const [voices, setVoices] = useState([]);
   const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
 
-  // load voices (chrome populates them async)
   useEffect(() => {
     const synth = synthRef.current;
     if (!synth) return;
@@ -32,7 +23,6 @@ export function useSpeech({ rate = 1, pitch = 1, voiceName = null, enabled = tru
       u.rate = rate;
       u.pitch = pitch;
       u.lang = lang;
-      // try to find a voice that matches the requested locale prefix (e.g. "hi", "es")
       const prefix = (lang || "en").split("-")[0].toLowerCase();
       const v = voices.find(v => v.name === voiceName)
               || voices.find(v => v.lang?.toLowerCase().startsWith(prefix))
@@ -43,7 +33,6 @@ export function useSpeech({ rate = 1, pitch = 1, voiceName = null, enabled = tru
       u.onerror = () => setSpeaking(false);
       synth.speak(u);
     } catch {
-      // ignore — speech is non-critical
     }
   }, [enabled, rate, pitch, voiceName, voices, lang]);
 

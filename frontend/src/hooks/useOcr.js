@@ -1,12 +1,3 @@
-/*
- * useOcr
- * ------
- * Lazy wrapper around tesseract.js.  We only spin up the worker the first
- * time `runOcr()` is called so the initial bundle load stays light.
- *
- *   const { runOcr, ocrLoading, ocrReady } = useOcr();
- *   const text = await runOcr(canvasOrImageOrUrl);   // returns "" if nothing
- */
 import { useCallback, useRef, useState } from "react";
 
 let workerPromise = null;
@@ -20,8 +11,6 @@ async function getWorker(lang = "eng") {
   return workerPromise;
 }
 
-// brand text on packaging is usually short, mostly letters, often UPPER.
-// be tolerant — gibberish noise gets filtered here.
 function looksLikeRealText(s) {
   if (!s) return false;
   const clean = s.replace(/[^A-Za-z0-9\s]/g, "").trim();

@@ -1,16 +1,4 @@
 import { GraduationCap } from "lucide-react";
-
-/*
- * AlternatesStrip
- * ---------------
- * Floats above the Identify button.
- *   - First chip is the "primary" guess.  If the user has previously
- *     taught the lens what this view contains, that taught label takes
- *     the primary slot and shows a tiny grad-cap badge.
- *   - The other 2-3 chips are the next best ImageNet alternates.
- *   - Tapping any chip both jumps to identifying that label *and*
- *     reinforces the (visual-fingerprint -> label) link in localStorage.
- */
 export default function AlternatesStrip({ alternates = [], via, onPick }) {
   if (!alternates.length) return null;
   const [top, ...rest] = alternates;

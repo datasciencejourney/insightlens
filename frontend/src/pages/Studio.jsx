@@ -1,23 +1,3 @@
-/*
- * Studio
- * ------
- * Main detection screen.
- *
- *   - bring up the camera
- *   - run a two-stage detector (COCO-SSD region + MobileNet classification)
- *   - on the Identify tap:
- *       (1) run OCR on the current crop — branded items usually have
- *           printed text that pins the answer down (e.g. "LUX BODY WASH")
- *       (2) ask the backend for insights, sending the OCR text as a hint
- *           so it can prefer the printed brand over the visual guess
- *   - the top-3 alternates are shown as tappable chips above the
- *     identify button so the user can override a wrong top guess.
- *   - the "correct-me" loop:  every alternate-chip tap *reinforces* a
- *     (visual-fingerprint → label) entry in localStorage.  Once an entry
- *     hits TEACH_THRESHOLD, that label is auto-promoted to primary on
- *     subsequent scans.  The Teach button is the one-shot variant — it
- *     stores the user-supplied label at the threshold immediately.
- */
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { ScanLine, GraduationCap } from "lucide-react";
@@ -36,11 +16,6 @@ import { fetchInsights, identifyImage } from "@/lib/api";
 import { ahash } from "@/lib/phash";
 import { lookup as lookupOverride, reinforce, teach, TEACH_THRESHOLD } from "@/lib/overrides";
 
-/**
- * Capture a full-resolution JPEG snapshot from the live video element.
- * This is what we send to Claude Vision — NOT the tiny 224×224 MobileNet crop.
- * We cap at 1280px wide so the base64 payload stays reasonable (~150–300 KB).
- */
 function captureFullFrame(videoEl) {
   if (!videoEl || videoEl.readyState < 2 || !videoEl.videoWidth) return null;
   const MAX = 1280;
@@ -56,11 +31,6 @@ function captureFullFrame(videoEl) {
   return c.toDataURL("image/jpeg", 0.88).split(",")[1];
 }
 
-/**
- * Ask Claude Vision (via our backend) what's in the full camera frame.
- * Takes the raw video element so it can grab a fresh full-res snapshot.
- * Returns a clean label string, or null on failure / if not configured.
- */
 async function identifyWithClaude(videoEl) {
   const imageData = captureFullFrame(videoEl);
   if (!imageData) return null;
@@ -74,7 +44,6 @@ const LIVE_GUESS_MIN   = 0.20;
 const AUTO_MIN_SCORE   = 0.30;
 
 export default function Studio() {
-  // ---- settings -----------------------------------------------------------
   const [voiceOn, setVoiceOn]     = useState(() => readBool("il.voice", true));
   const [autoMode, setAutoMode]   = useState(() => readBool("il.auto", false));
   const [rate, setRate]           = useState(() => readNum("il.rate", 1.0));
@@ -95,19 +64,16 @@ export default function Studio() {
   useEffect(() => { localStorage.setItem("il.ocr", useOcrHint); }, [useOcrHint]);
   useEffect(() => { localStorage.setItem("il.food", foodMode); }, [foodMode]);
 
-  // ---- detection ----------------------------------------------------------
   const videoRef = useRef(null);
   const { loading, classifierLoading, error: detectError, boxes, topGuess, fps, captureCrop, retry } = useObjectDetection(
     videoRef,
     { enabled: true, minScore, intervalMs: 400 },
   );
 
-  // ---- speech + ocr -------------------------------------------------------
   const speechLangMap = { en: "en-US", hi: "hi-IN", es: "es-ES", fr: "fr-FR" };
   const { speak, speaking } = useSpeech({ rate, pitch, enabled: voiceOn, lang: speechLangMap[lang] });
   const { runOcr, ocrLoading } = useOcr();
 
-  // ---- announced state + history ------------------------------------------
   const [currentLabel, setCurrentLabel] = useState(null);
   const [insight, setInsight] = useState(null);
   const [fetching, setFetching] = useState(null);
@@ -116,13 +82,10 @@ export default function Studio() {
   const [cameraReady, setCameraReady] = useState(false);
   const onCameraState = useCallback((s) => setCameraReady(!!s.ready), []);
 
-  // ---- correct-me loop ----------------------------------------------------
-  const [memoryHit, setMemoryHit] = useState(null);   // { label, count } — taught label that matches current crop
+  const [memoryHit, setMemoryHit] = useState(null);
   const [teachOpen, setTeachOpen] = useState(false);
   const lastHashCheckedRef = useRef(null);
 
-  // every time topGuess changes, peek at the current crop's fingerprint and
-  // see if we've previously taught it something.  cheap: 8x8 grayscale aHash.
   useEffect(() => {
     if (!topGuess) {
       setMemoryHit(null);
@@ -141,14 +104,10 @@ export default function Studio() {
     }
   }, [topGuess, captureCrop]);
 
-  // ---- stability tracking -------------------------------------------------
   const streakRef = useRef({ label: null, count: 0 });
   const lastAnnounceAt = useRef(0);
   const inflightFor = useRef(null);
 
-  // effective primary label is "what we'll auto-identify when stable":
-  //   1) if memory recognises this view, prefer the taught label
-  //   2) otherwise, the strongest top guess
   const primaryLabel =
   (memoryHit && (topGuess?.score ?? 0) < 0.85)
     ? memoryHit.label
@@ -172,20 +131,18 @@ export default function Studio() {
     else streakRef.current = { label: primaryLabel, count: 1 };
   }, [primaryLabel]);
 
-  // ---- identify + reinforce ----------------------------------------------
   const identify = useCallback(async (label, { withOcr = false, reinforceHash = false } = {}) => {
     if (!label || inflightFor.current === label) return;
     inflightFor.current = label;
     setFetching(label);
     setError(null);
 
-    // capture the crop now so OCR and override-reinforce see the same frame
     const crop = captureCrop();
     const hash = crop ? ahash(crop) : null;
 
     let hint = null;
     if (withOcr && useOcrHint && crop) {
-      try { hint = await runOcr(crop); } catch { /* ignore */ }
+      try { hint = await runOcr(crop); } catch {}
     }
 
     try {
@@ -198,7 +155,6 @@ export default function Studio() {
       });
       lastAnnounceAt.current = Date.now();
       if (voiceOn && data.spoken) speak(data.spoken);
-      // reinforce the (hash, label) link if asked — alternates picks always do
       if (reinforceHash && hash) {
         const entry = reinforce(hash, label);
         if (entry?.count === TEACH_THRESHOLD) {
@@ -213,12 +169,10 @@ export default function Studio() {
     }
   }, [speak, topGuess?.score, voiceOn, lang, runOcr, captureCrop, useOcrHint, foodMode]);
 
-  // auto-mode: when label stabilises, fire identify using Claude Vision
   useEffect(() => {
     if (!autoMode || !stableLabel) return;
     if (stableLabel === currentLabel) return;
     if (Date.now() - lastAnnounceAt.current < AUTO_COOLDOWN_MS) return;
-    // Use Claude Vision in auto-mode for accurate identification
     setFetching("analysing…");
     identifyWithClaude(videoRef.current).then(visionLabel => {
       const label = visionLabel || stableLabel;
@@ -228,9 +182,7 @@ export default function Studio() {
     });
   }, [autoMode, stableLabel, currentLabel, identify, videoRef]);
 
-  // identify tap = use Claude Vision for accurate identification, fall back to primary label
   const onIdentifyClick = useCallback(async () => {
-    // if already showing this label, just re-speak
     if (primaryLabel && primaryLabel === currentLabel && insight) {
       speak(insight.spoken);
       return;
@@ -242,15 +194,13 @@ export default function Studio() {
       return;
     }
 
-    // Use Claude Vision with the full-resolution video frame
     setFetching("analysing…");
     setError(null);
     let label = null;
     try {
       label = await identifyWithClaude(video);
-    } catch { /* ignore */ }
+    } catch {}
 
-    // Fall back to the COCO/MobileNet guess if vision fails
     if (!label) label = primaryLabel;
 
     if (!label) {
@@ -262,12 +212,10 @@ export default function Studio() {
     identify(label, { withOcr: true });
   }, [primaryLabel, currentLabel, insight, speak, identify, videoRef]);
 
-  // when user taps an alternate chip = reinforce the hash with that label
   const onAlternatePick = useCallback((label) => {
     identify(label, { withOcr: false, reinforceHash: true });
   }, [identify]);
 
-  // "teach the lens" — one-shot store of user-supplied label
   const onTeachSave = useCallback((label) => {
     const crop = captureCrop();
     const hash = ahash(crop);
@@ -275,11 +223,9 @@ export default function Studio() {
       teach(hash, label);
       toast.success(`saved "${label}" to this device`);
     }
-    // immediately look it up so the user sees insights
     identify(label, { withOcr: false });
   }, [captureCrop, identify]);
 
-  // notify once when the model is ready
   const announcedReady = useRef(false);
   useEffect(() => {
     if (!loading && !announcedReady.current) {
@@ -296,13 +242,11 @@ export default function Studio() {
     await identify(label, { withOcr: false });
   }, [currentLabel, insight, speak, identify]);
 
-  // confidence + streak math for the button
   const guessConfidence = topGuess?.score ?? 0;
   const streakProgress = streakRef.current.label === primaryLabel
     ? Math.min(1, streakRef.current.count / STABLE_FRAMES)
     : 0;
 
-  // build the alternates list: taught label (if any) first, then top guesses
   const alternates = useMemo(() => {
     const list = [];
     if (memoryHit) {
@@ -339,7 +283,6 @@ export default function Studio() {
         />
       </div>
 
-      {/* live guess + alternates strip */}
       {showLiveStuff && (
         <AlternatesStrip
           alternates={alternates}
@@ -351,7 +294,6 @@ export default function Studio() {
 
       <HistoryTimeline items={history} currentLabel={currentLabel} onPick={onPickHistory} />
 
-      {/* identify + teach buttons */}
       {cameraReady && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(45vh+18px)] sm:bottom-[calc(380px+18px)] z-20 flex items-center gap-5">
           <IdentifyButton
@@ -380,7 +322,6 @@ export default function Studio() {
         onSave={onTeachSave}
       />
 
-      {/* insight panel */}
       <div className="absolute bottom-0 inset-x-0 z-10 max-h-[45vh] sm:max-h-[380px] overflow-y-auto bg-black/85 backdrop-blur-2xl border-t border-white/10 px-5 sm:px-8 py-6"
            data-testid="insight-panel">
         <InsightPanel
@@ -413,7 +354,6 @@ export default function Studio() {
         </div>
       )}
 
-      {/* graceful failure UI */}
       {detectError && (
         <div className="absolute inset-0 z-30 bg-black/95 flex items-center justify-center px-6"
              data-testid="model-load-error">
@@ -436,7 +376,6 @@ export default function Studio() {
         </div>
       )}
 
-      {/* tiny strip showing classifier still streaming in the background */}
       {!loading && classifierLoading && !detectError && (
         <div className="absolute top-32 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 bg-black/70 backdrop-blur border border-white/15 text-[10px] font-mono uppercase tracking-[0.25em] text-neutral-300"
              data-testid="classifier-loading-strip">

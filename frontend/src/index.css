@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---- typography ----------------------------------------------------- */
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
@@ -32,7 +31,6 @@ body {
 h1, h2, h3, h4 { font-family: "Outfit", sans-serif; letter-spacing: -0.01em; }
 .font-mono, code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
 
-/* a tiny grain so the empty black surface doesn't feel dead */
 .grain::before {
   content: "";
   position: absolute; inset: 0;
@@ -42,11 +40,9 @@ h1, h2, h3, h4 { font-family: "Outfit", sans-serif; letter-spacing: -0.01em; }
   opacity: 0.6;
 }
 
-/* horizontal scroll for history chips, no scrollbar */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* the speech pulse */
 @keyframes pulse-ring {
   0%   { transform: scale(0.85); opacity: 0.8; }
   100% { transform: scale(1.6);  opacity: 0;   }
@@ -57,7 +53,6 @@ h1, h2, h3, h4 { font-family: "Outfit", sans-serif; letter-spacing: -0.01em; }
   animation: pulse-ring 1.4s ease-out infinite;
 }
 
-/* corner brackets for bounding boxes */
 .corner-bracket { position: absolute; width: 14px; height: 14px; border-color: #ffffff; }
 .corner-bracket.tl { top: 0;    left: 0;    border-top: 1.5px solid; border-left: 1.5px solid; }
 .corner-bracket.tr { top: 0;    right: 0;   border-top: 1.5px solid; border-right: 1.5px solid; }

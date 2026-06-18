@@ -1,13 +1,5 @@
 import { ExternalLink, Volume2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-/*
- * InsightPanel
- * ------------
- * Bottom-sheet that renders whatever the backend returned for the current
- * detected object.  Keeps an information-dense Swiss layout: data labels in
- * uppercase mono, values in plain prose.
- */
 export default function InsightPanel({ insight, loading, error, speaking, onSpeakAgain }) {
   if (!insight && !loading && !error) {
     return (
@@ -46,7 +38,6 @@ export default function InsightPanel({ insight, loading, error, speaking, onSpea
 
   return (
     <div className="space-y-5" data-testid="insight-content">
-      {/* header */}
       <div className="flex items-start gap-4">
         {image && (
           <img src={image} alt="" loading="lazy"
@@ -77,7 +68,6 @@ export default function InsightPanel({ insight, loading, error, speaking, onSpea
         </button>
       </div>
 
-      {/* trivia */}
       {trivia?.length > 0 && (
         <div data-testid="insight-trivia">
           <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-500 mb-2">
@@ -94,7 +84,6 @@ export default function InsightPanel({ insight, loading, error, speaking, onSpea
         </div>
       )}
 
-      {/* structured facts (wikidata) */}
       {facts?.length > 0 && (
         <div data-testid="insight-facts">
           <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-500 mb-2">
@@ -111,7 +100,6 @@ export default function InsightPanel({ insight, loading, error, speaking, onSpea
         </div>
       )}
 
-      {/* nutrition */}
       {nutrition && (
         <div data-testid="insight-nutrition">
           <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-500 mb-2">
@@ -150,7 +138,6 @@ export default function InsightPanel({ insight, loading, error, speaking, onSpea
         </div>
       )}
 
-      {/* recipes */}
       {recipes?.length > 0 && (
         <div data-testid="insight-recipes">
           <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-500 mb-2">
@@ -184,7 +171,6 @@ export default function InsightPanel({ insight, loading, error, speaking, onSpea
         </div>
       )}
 
-      {/* sources */}
       <div className="flex items-center justify-between pt-2 border-t border-white/10">
         <div className="flex flex-wrap gap-2">
           {sources?.map(s => (

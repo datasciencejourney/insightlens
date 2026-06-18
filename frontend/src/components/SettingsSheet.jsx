@@ -122,7 +122,6 @@ export default function SettingsSheet({
             </Button>
           </div>
 
-          {/* memorized labels — the correct-me loop's payoff */}
           <div className="border-t border-white/10 pt-6">
             <div className="flex items-center justify-between mb-3">
               <Label className="text-[10px] font-mono uppercase tracking-[0.25em] text-neutral-400 flex items-center gap-1.5">

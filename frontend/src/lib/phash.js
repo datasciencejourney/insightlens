@@ -1,15 +1,3 @@
-/*
- * Perceptual hash + simple Hamming distance helpers.
- *
- * We use the classic 8x8 average-hash (aHash):
- *   1) downsample the source canvas to 8x8 grayscale
- *   2) compute the mean luminance
- *   3) each pixel becomes 1 if above mean, else 0  -> 64-bit fingerprint
- *
- * It is *not* invariant to rotation or extreme cropping, but it is plenty
- * stable for "the same object held in front of the same camera" — which
- * is exactly the workload of the correct-me loop.
- */
 export function ahash(srcCanvas) {
   if (!srcCanvas) return null;
   const tmp = document.createElement("canvas");

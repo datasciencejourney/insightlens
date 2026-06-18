@@ -1,17 +1,3 @@
-"""
-InsightLens — backend API
--------------------------
-A thin aggregator that takes an object label (from COCO-SSD running in the
-browser) and pulls together "beyond the obvious" insights from a handful of
-free public APIs:
-
-  * Wikipedia REST API   – encyclopedic summary
-  * Wikidata             – structured properties (origin, inventor, taxon…)
-  * Open Food Facts      – nutrition / additives / nova score (food only)
-  * DuckDuckGo Instant   – quick trivia / abstract
-
-Everything is free.  No keys.  No accounts.  No paid tier.
-"""
 from __future__ import annotations
 
 import asyncio
@@ -34,9 +20,6 @@ from starlette.middleware.cors import CORSMiddleware
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
-# ---------------------------------------------------------------------------
-# basic infra
-# ---------------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
 log = logging.getLogger("insightlens")
 
@@ -46,11 +29,9 @@ db = mongo_client[os.environ["DB_NAME"]]
 app = FastAPI(title="InsightLens API", version="1.0.0")
 api = APIRouter(prefix="/api")
 
-# COCO-SSD food-ish classes + common food items users might identify
 FOOD_LABELS = {
     "banana", "apple", "sandwich", "orange", "broccoli", "carrot",
     "hot dog", "pizza", "donut", "cake", "wine glass", "cup", "bowl",
-    # extended food/drink terms likely coming from Claude Vision
     "mango", "grape", "watermelon", "strawberry", "tomato", "potato",
     "onion", "garlic", "lemon", "lime", "pear", "peach", "pineapple",
     "avocado", "cucumber", "pepper", "corn", "mushroom", "egg",
@@ -66,9 +47,6 @@ FOOD_LABELS = {
     "cereal", "oats", "jam", "honey", "sauce", "ketchup",
 }
 
-# Hand-curated "interesting Wikidata properties" — these are the ones that
-# tend to produce non-obvious insights (vs. boring stuff like "described at URL")
-# Mapping: prop id → human label
 WIKIDATA_PROPS = {
     "P31":   "instance of",
     "P279":  "subclass of",
@@ -98,11 +76,7 @@ WIKIDATA_PROPS = {
 }
 
 
-# When the camera context obviously implies one meaning but Wikipedia's
-# default article is something else entirely, rewrite the search term.
-# This avoids the "mouse -> rodent" / "tub -> tuberculosis" disasters.
 DISAMBIGUATION = {
-    # --- Computing & Electronics ---
     "mouse":              "computer mouse",
     "remote":             "remote control",
     "remote control":     "remote control",
@@ -142,7 +116,6 @@ DISAMBIGUATION = {
     "television":         "television set",
     "tv":                 "television set",
 
-    # --- Household & Daily Use ---
     "tub":                "bathtub",
     "bath tub":           "bathtub",
     "ashcan":             "trash can",
@@ -196,7 +169,6 @@ DISAMBIGUATION = {
     "picture frame":      "picture frame",
     "photo frame":        "picture frame",
 
-    # --- Stationery & Office ---
     "ballpoint":          "ballpoint pen",
     "ballpoint pen":      "ballpoint pen",
     "pen":                "ballpoint pen",
@@ -216,7 +188,6 @@ DISAMBIGUATION = {
     "book jacket":        "book cover",
     "menu":               "menu",
 
-    # --- Personal Care & Grooming ---
     "comb":               "comb",
     "brush":              "hairbrush",
     "hair drier":         "hair dryer",
@@ -241,7 +212,6 @@ DISAMBIGUATION = {
     "bandage":            "adhesive bandage",
     "band-aid":           "adhesive bandage",
 
-    # --- Clothing & Accessories ---
     "tie":                "necktie",
     "necktie":            "necktie",
     "belt":               "belt",
@@ -260,7 +230,6 @@ DISAMBIGUATION = {
     "scarf":              "scarf",
     "stocking":           "stocking",
 
-    # --- Kitchen & Food items ---
     "bottle":             "bottle",
     "water bottle":       "water bottle",
     "wine bottle":        "wine bottle",
@@ -285,7 +254,6 @@ DISAMBIGUATION = {
     "pot":                "cooking pot",
     "cutting board":      "cutting board",
 
-    # --- Tools & Hardware ---
     "hammer":             "hammer",
     "screwdriver":        "screwdriver",
     "wrench":             "wrench",
@@ -297,7 +265,6 @@ DISAMBIGUATION = {
     "paintbrush":         "paintbrush",
     "paint roller":       "paint roller",
 
-    # --- Toys & Games ---
     "ping-pong ball":     "table tennis ball",
     "ping pong ball":     "table tennis ball",
     "dice":               "dice",
@@ -307,7 +274,6 @@ DISAMBIGUATION = {
     "rubik's cube":       "Rubik's Cube",
     "rubiks cube":        "Rubik's Cube",
 
-    # --- Vehicles & Transport ---
     "bicycle":            "bicycle",
     "bike":               "bicycle",
     "motorcycle":         "motorcycle",
@@ -317,7 +283,6 @@ DISAMBIGUATION = {
     "helmet":             "cycling helmet",
     "bicycle helmet":     "cycling helmet",
 
-    # --- Misc ---
     "bench":              "bench (furniture)",
     "press":              "espresso machine",
     "espresso maker":     "espresso machine",
@@ -360,11 +325,7 @@ DISAMBIGUATION = {
 }
 
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
 async def _wikipedia_summary(client: httpx.AsyncClient, term: str, lang: str = "en") -> dict[str, Any] | None:
-    """Pull a clean Wikipedia summary.  Returns None on miss."""
     url = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{term.replace(' ', '_')}"
     try:
         r = await client.get(url, timeout=8.0, follow_redirects=True)
@@ -386,21 +347,10 @@ async def _wikipedia_summary(client: httpx.AsyncClient, term: str, lang: str = "
 
 
 async def _wikipedia_search_then_summary(client: httpx.AsyncClient, query: str, lang: str = "en") -> dict[str, Any] | None:
-    """
-    When the direct page-summary endpoint misses (typical for OCR
-    free-text like "LUX BODY WASH"), use the search API to find the
-    most relevant article, then re-fetch its summary.
-
-    Strategy (most-conservative → least):
-      1) opensearch — title-prefix matches only.  Avoids wandering off
-         into song lyrics that happen to share keywords.
-      2) full-text search, but only if no opensearch hit.
-    """
     q = query.strip()
     if not q:
         return None
     try:
-        # opensearch — returns title matches first
         r = await client.get(
             f"https://{lang}.wikipedia.org/w/api.php",
             params={"action": "opensearch", "search": q, "limit": 1, "format": "json"},
@@ -410,8 +360,6 @@ async def _wikipedia_search_then_summary(client: httpx.AsyncClient, query: str, 
         if isinstance(data, list) and len(data) > 1 and data[1]:
             return await _wikipedia_summary(client, data[1][0], lang=lang)
 
-        # fallback to full-text — but only if the query is reasonably short
-        # (long OCR strings produce way too many false positives here)
         if len(q.split()) <= 2:
             r = await client.get(
                 f"https://{lang}.wikipedia.org/w/api.php",
@@ -429,12 +377,6 @@ async def _wikipedia_search_then_summary(client: httpx.AsyncClient, query: str, 
 
 
 async def _wikidata_facts(client: httpx.AsyncClient, term: str, qid: str | None = None) -> list[dict[str, str]]:
-    """Look up an entity in Wikidata and surface the "interesting" claims.
-
-    If a Q-id is supplied (from the Wikipedia summary), we skip the fuzzy
-    text search entirely — that gives us much better targeting than
-    `wbsearchentities`, which loves to return slang variants.
-    """
     try:
         if not qid:
             s = await client.get(
@@ -457,9 +399,8 @@ async def _wikidata_facts(client: httpx.AsyncClient, term: str, qid: str | None 
         entity = e.json()["entities"][qid]
         claims = entity.get("claims", {})
 
-        # resolve the value ids in one batch so we get the english labels
         value_ids: list[str] = []
-        wanted: list[tuple[str, str]] = []   # (prop_label, value_id)
+        wanted: list[tuple[str, str]] = []
         for pid, human in WIKIDATA_PROPS.items():
             if pid not in claims:
                 continue
@@ -473,7 +414,6 @@ async def _wikidata_facts(client: httpx.AsyncClient, term: str, qid: str | None 
                     value_ids.append(v["id"])
                     wanted.append((human, v["id"]))
                 elif isinstance(v, dict) and "time" in v:
-                    # 1969-07-20T... → 1969
                     yr = v["time"].lstrip("+").split("-")[0]
                     wanted.append((human, yr))
                 elif isinstance(v, dict) and "amount" in v:
@@ -483,7 +423,6 @@ async def _wikidata_facts(client: httpx.AsyncClient, term: str, qid: str | None 
 
         labels: dict[str, str] = {}
         if value_ids:
-            # wikidata allows up to 50 ids in one call
             chunk = "|".join(value_ids[:50])
             lr = await client.get(
                 "https://www.wikidata.org/w/api.php",
@@ -567,21 +506,13 @@ async def _open_food_facts(client: httpx.AsyncClient, term: str) -> dict[str, An
 
 
 async def _themealdb_recipes(client: httpx.AsyncClient, term: str) -> list[dict[str, Any]]:
-    """
-    Free recipe API.  Two strategies:
-       1) treat `term` as an ingredient (filter.php?i=...)
-       2) treat `term` as a dish name      (search.php?s=...)
-    Either way, return up to 4 recipes with a thumbnail + ingredients.
-    """
     try:
-        # try as ingredient first — gives us "use this in X dishes"
         r = await client.get(
             "https://www.themealdb.com/api/json/v1/1/filter.php",
             params={"i": term}, timeout=6.0,
         )
         meals = (r.json() or {}).get("meals") or []
         if not meals:
-            # fall back to "is the object itself a dish?"
             r = await client.get(
                 "https://www.themealdb.com/api/json/v1/1/search.php",
                 params={"s": term}, timeout=6.0,
@@ -590,7 +521,6 @@ async def _themealdb_recipes(client: httpx.AsyncClient, term: str) -> list[dict[
         if not meals:
             return []
 
-        # for each of the top 4, hydrate the full record so we can pull ingredients
         ids = [m["idMeal"] for m in meals[:4] if m.get("idMeal")]
         async def _lookup(mid: str) -> dict[str, Any] | None:
             try:
@@ -627,10 +557,8 @@ async def _themealdb_recipes(client: httpx.AsyncClient, term: str) -> list[dict[
 
 
 def _extract_trivia(extract: str | None) -> list[str]:
-    """Pull non-obvious sentences from a wikipedia summary."""
     if not extract:
         return []
-    # split into sentences, prefer ones with numbers / "however" / "first" / "discovered"
     sents = re.split(r"(?<=[.!?])\s+", extract.strip())
     scored: list[tuple[int, str]] = []
     interesting = ("however", "first", "discovered", "invented", "originated",
@@ -651,9 +579,6 @@ def _extract_trivia(extract: str | None) -> list[str]:
     return [s for sc, s in scored if sc >= 1][:3]
 
 
-# ---------------------------------------------------------------------------
-# models
-# ---------------------------------------------------------------------------
 class Recipe(BaseModel):
     name: str | None = None
     area: str | None = None
@@ -677,9 +602,6 @@ class Insight(BaseModel):
     spoken: str = ""
 
 
-# ---------------------------------------------------------------------------
-# routes
-# ---------------------------------------------------------------------------
 @api.get("/")
 async def root() -> dict[str, str]:
     return {"name": "InsightLens", "status": "ok"}
@@ -696,7 +618,7 @@ class IdentifyRequest(BaseModel):
 
 class IdentifyResponse(BaseModel):
     label: str | None
-    source: str  # "claude" | "none"
+    source: str
 
 
 VISION_PROMPT = """Look at this photo and name the single most prominent physical object you see.
@@ -718,15 +640,6 @@ Reply with just the object name."""
 
 @api.post("/identify", response_model=IdentifyResponse)
 async def identify_object(payload: IdentifyRequest) -> IdentifyResponse:
-    """
-    Server-side proxy to Claude Vision.
-
-    The browser sends a base64 JPEG; we attach the API key here (never in
-    client code, where anyone with devtools could lift it) and forward the
-    request to Anthropic.  If no key is configured we return label=None so
-    the frontend gracefully falls back to its on-device COCO-SSD/MobileNet
-    guess instead of erroring out.
-    """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         log.warning("ANTHROPIC_API_KEY not set — Claude Vision identify disabled, frontend will use on-device guess")
@@ -776,30 +689,11 @@ async def insights(
     hint: str | None = Query(None, max_length=120),
     food: int = Query(0, ge=0, le=1),
 ) -> Insight:
-    """
-    Returns aggregated insights for a single detected label.
-
-    `label` is the (fine-grained) class name from the browser-side detector.
-    `lang` controls Wikipedia language (`en`, `hi`, `es`, `fr`, …).
-    `hint` is optional OCR text from the image — when present we treat it
-    as the *primary* term and fall back to `label` only if Wikipedia
-    doesn't recognise it.
-    `food=1` forces the recipe/nutrition fan-out even when the heuristic
-    can't confirm the item is food (useful when the user has flipped on
-    "food mode" in the UI).
-    """
     raw = label.strip().lower()
-    # Try exact match first, then prefix matches for compound terms.
-    # NOTE: check membership directly rather than comparing term == raw --
-    # several entries intentionally map a label to itself (e.g. "book":
-    # "book"), and comparing values would wrongly treat that exact hit as
-    # a miss, sending it through the much fragile substring fallback below
-    # and risking an unrelated overwrite.
     if raw in DISAMBIGUATION:
         term = DISAMBIGUATION[raw]
     else:
         term = raw
-        # try partial key matching for compound terms like "wireless mouse"
         for key, val in DISAMBIGUATION.items():
             if key in raw or raw in key:
                 if len(key) > 4:  # avoid short spurious matches
@@ -807,20 +701,14 @@ async def insights(
                     break
 
     async with httpx.AsyncClient(headers={"User-Agent": "InsightLens/1.0 (https://github.com/insightlens; educational object-detection demo)"}) as client:
-        # try OCR hint first if provided — but only for the search; we keep
-        # the original label as the "what we saw" tag for the UI.
         wiki = None
         if hint:
             hint_clean = hint.strip().lower()
-            # 1) exact-page lookup
             wiki = await _wikipedia_summary(client, hint_clean, lang=lang)
-            # 2) opensearch on full hint
             if not wiki:
                 wiki = await _wikipedia_search_then_summary(client, hint_clean, lang=lang)
             if not wiki and lang != "en":
                 wiki = await _wikipedia_search_then_summary(client, hint_clean, lang="en")
-            # 3) try just the first word of the hint — brand names are
-            #    usually the first token ("LUX body wash" -> "lux")
             first = hint_clean.split()[0] if hint_clean else ""
             if not wiki and first and first != hint_clean:
                 wiki = await _wikipedia_summary(client, first, lang="en")
@@ -832,15 +720,11 @@ async def insights(
                 wiki = await _wikipedia_summary(client, term, lang="en")
         if not wiki and term != raw:
             wiki = await _wikipedia_summary(client, raw, lang="en")
-        # final safety net: full-text search on the disambiguated term
         if not wiki:
             wiki = await _wikipedia_search_then_summary(client, term, lang="en")
 
         qid = wiki.get("wikidata_qid") if wiki else None
 
-        # decide whether to bother with food/recipe APIs.  We hit them when:
-        #   1) the label is in our small COCO food list, or
-        #   2) the Wikipedia summary mentions food/cooking/edible/fruit/...
         food_hint_words = ("food", "fruit", "vegetable", "edible", "dish",
                            "cuisine", "snack", "beverage", "cooking", "ingredient",
                            "cooked", "baked", "fried", "dessert", "meat")
@@ -888,10 +772,8 @@ async def insights(
     if recipes:
         sources.append("TheMealDB")
 
-    # de-dup but preserve order
     sources = list(dict.fromkeys(sources))
 
-    # build the line the browser will speak aloud — short, dense, useful.
     spoken_bits: list[str] = []
     if title:
         spoken_bits.append(f"This is a {title}.")
@@ -919,7 +801,7 @@ async def insights(
         log.warning("mongo insert failed: %s", e)
 
     return Insight(
-        label=raw,            # what the camera saw — useful for the small detected tag
+        label=raw,
         title=title,
         summary=summary,
         image=image,
@@ -935,10 +817,6 @@ async def insights(
 
 @api.get("/source.zip")
 async def download_source() -> StreamingResponse:
-    """
-    Bundles the full project source into a zip on the fly so users can
-    grab the codebase from the deployed website itself.
-    """
     buf = io.BytesIO()
     root = Path("/app")
     skip = {"node_modules", ".git", "__pycache__", "build", ".yarn",

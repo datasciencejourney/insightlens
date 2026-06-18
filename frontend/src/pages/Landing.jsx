@@ -1,41 +1,55 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Camera, Github, Mic, Sparkles } from "lucide-react";
+import { ArrowUpRight, Camera, Mic, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { sourceZipUrl } from "@/lib/api";
-
-const HERO = null; // local placeholder — no external image dependency
 
 export default function Landing() {
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden grain">
-      {/* nav */}
-      <nav className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-6">
+      <nav className="relative z-10 flex items-center justify-between gap-4 px-6 sm:px-10 py-6">
         <div className="flex items-center gap-3" data-testid="brand-mark">
           <div className="h-8 w-8 border border-white/40 flex items-center justify-center">
             <span className="text-[10px] font-mono tracking-widest">IL</span>
           </div>
           <span className="text-sm font-mono tracking-[0.25em] uppercase">InsightLens</span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono uppercase tracking-[0.2em] text-neutral-400">
-          <a href="https://github.com" target="_blank" rel="noreferrer"
-             className="hover:text-white transition-colors flex items-center gap-1.5"
-             data-testid="nav-github-link">
-            <Github className="h-3.5 w-3.5" /> source
+        <div className="flex flex-wrap items-center justify-end gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-300">
+          <a
+            href="https://www.linkedin.com/in/lovelyr"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-2 hover:border-white/40 hover:text-white transition-colors"
+            data-testid="nav-linkedin-link"
+          >
+            LinkedIn
           </a>
-          <span className="text-neutral-700">·</span>
-          <a href={sourceZipUrl()} className="hover:text-white transition-colors"
-             data-testid="nav-download-zip">download .zip</a>
+          <a
+            href="https://github.com/datasciencejourney/insightlens"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-2 hover:border-white/40 hover:text-white transition-colors"
+            data-testid="nav-github-link"
+          >
+            Github
+          </a>
+          <a
+            href="https://lovelyramchandani.netlify.app/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-2 hover:border-white/40 hover:text-white transition-colors"
+            data-testid="nav-portfolio-link"
+          >
+            Portfolio
+          </a>
         </div>
       </nav>
 
-      {/* hero */}
       <section className="relative z-10 px-6 sm:px-10 pt-8 sm:pt-16 pb-24">
         <div className="grid md:grid-cols-12 gap-12 max-w-7xl">
           <div className="md:col-span-7">
             <div className="flex items-center gap-2 mb-8">
               <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
               <p className="text-xs font-mono uppercase tracking-[0.3em] text-neutral-400">
-                v1.0 · runs entirely in your browser
+                runs entirely in your browser
               </p>
             </div>
 
@@ -64,14 +78,8 @@ export default function Landing() {
                   <ArrowUpRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
-              <a href={sourceZipUrl()}
-                 className="text-sm font-mono uppercase tracking-[0.2em] text-neutral-400 hover:text-white transition-colors border-b border-transparent hover:border-white pb-1"
-                 data-testid="hero-download-button">
-                or grab the source ↓
-              </a>
             </div>
 
-            {/* feature row */}
             <div className="mt-16 grid grid-cols-3 gap-6 max-w-xl border-t border-white/10 pt-8">
               <Feat icon={<Camera className="h-4 w-4" />}
                     h="Claude Vision"
@@ -85,7 +93,6 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* visual */}
           <div className="md:col-span-5 relative">
             <div className="relative aspect-[4/5] border border-white/15 overflow-hidden">
               <div className="absolute inset-0 bg-neutral-950 flex items-center justify-center">
@@ -100,7 +107,6 @@ export default function Landing() {
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-              {/* fake bracket overlay just for flavor */}
               <div className="absolute inset-6 pointer-events-none">
                 <span className="corner-bracket tl" />
                 <span className="corner-bracket tr" />
@@ -112,15 +118,14 @@ export default function Landing() {
               </div>
             </div>
             <p className="mt-4 text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-600">
-              fig. 01 — sample bounding overlay
+                sample bounding overlay
             </p>
           </div>
         </div>
       </section>
 
-      {/* footer */}
       <footer className="relative z-10 border-t border-white/10 px-6 sm:px-10 py-6 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-500">
-        <span>MIT licensed · built for tinkering</span>
+          <span>MIT licensed</span>
         <span>no telemetry · no ads · 100% free APIs</span>
       </footer>
     </div>
