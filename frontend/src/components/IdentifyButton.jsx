@@ -1,4 +1,12 @@
 import { Scan, Loader2 } from "lucide-react";
+
+/*
+ * IdentifyButton
+ * --------------
+ * Big circular capture button.
+ *  - inner ring shows how close we are to a "stable" identification
+ *  - in auto mode the label changes from "identify" -> "auto"
+ */
 export default function IdentifyButton({ onClick, disabled, loading, progress = 0, auto = false }) {
   const pct = Math.round(progress * 100);
   return (

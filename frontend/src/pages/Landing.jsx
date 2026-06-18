@@ -5,28 +5,28 @@ import { Button } from "@/components/ui/button";
 export default function Landing() {
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden grain">
-      <nav className="relative z-10 flex items-center justify-between gap-4 px-6 sm:px-10 py-6">
+      <nav className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-6 gap-4">
         <div className="flex items-center gap-3" data-testid="brand-mark">
           <div className="h-8 w-8 border border-white/40 flex items-center justify-center">
             <span className="text-[10px] font-mono tracking-widest">IL</span>
           </div>
           <span className="text-sm font-mono tracking-[0.25em] uppercase">InsightLens</span>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-300">
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-mono uppercase tracking-[0.2em] text-neutral-400">
           <a
             href="https://www.linkedin.com/in/lovelyr"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-2 hover:border-white/40 hover:text-white transition-colors"
+            className="hover:text-white transition-colors border border-white/10 hover:border-white/30 bg-black/40 px-3 py-2"
             data-testid="nav-linkedin-link"
           >
-            LinkedIn
+            LinkedIN
           </a>
           <a
             href="https://github.com/datasciencejourney/insightlens"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-2 hover:border-white/40 hover:text-white transition-colors"
+            className="hover:text-white transition-colors border border-white/10 hover:border-white/30 bg-black/40 px-3 py-2"
             data-testid="nav-github-link"
           >
             Github
@@ -35,10 +35,10 @@ export default function Landing() {
             href="https://lovelyramchandani.netlify.app/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 border border-white/15 bg-black/40 px-3 py-2 hover:border-white/40 hover:text-white transition-colors"
+            className="hover:text-white transition-colors border border-white/10 hover:border-white/30 bg-black/40 px-3 py-2"
             data-testid="nav-portfolio-link"
           >
-            Portfolio
+            portfolio
           </a>
         </div>
       </nav>
@@ -112,20 +112,13 @@ export default function Landing() {
                 <span className="corner-bracket tr" />
                 <span className="corner-bracket bl" />
                 <span className="corner-bracket br" />
-                <div className="absolute bottom-3 left-3 text-[10px] font-mono uppercase tracking-[0.25em] text-white/70 bg-black/50 px-2 py-1">
-                  obj_03 · lens · 0.94
-                </div>
               </div>
             </div>
-            <p className="mt-4 text-[10px] font-mono uppercase tracking-[0.3em] text-neutral-600">
-                sample bounding overlay
-            </p>
           </div>
         </div>
       </section>
 
       <footer className="relative z-10 border-t border-white/10 px-6 sm:px-10 py-6 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-500">
-          <span>MIT licensed</span>
         <span>no telemetry · no ads · 100% free APIs</span>
       </footer>
     </div>
