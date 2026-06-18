@@ -1,6 +1,6 @@
 # InsightLens
 
-Point your camera at anything. Hear the facts most people don't know — read aloud, hands-free.
+Point your camera at anything. Hear the facts most people don't know: read aloud, hands-free.
 
 I built this because I wanted something that felt like the AR-glasses moment from every sci-fi movie, but using only the free parts of the web. No OpenAI key, no AWS bill, no Apple Vision Pro. Just a browser, a quantized object detector, and Wikipedia.
 
@@ -21,13 +21,11 @@ The interesting part is what happens after detection. Instead of just labeling s
 
 Everything gets spoken aloud using the browser's built-in speech API. No recordings, no cloud TTS, no buttons to press.
 
-The UI tries to feel like a HUD rather than a debug screen — bounding boxes rendered as four corner brackets, a draggable info sheet at the bottom, and a small chip history so you can jump back to something you saw a moment ago.
-
 ## Stack
 
 | Layer | Tech |
 |---|---|
-| Frontend | React 19, Tailwind, shadcn/ui, lucide-react |
+| Frontend | React 19, Tailwind |
 | Detection | TensorFlow.js + COCO-SSD |
 | Speech | Web Speech API (browser native) |
 | Backend | FastAPI + httpx |
@@ -36,7 +34,7 @@ The UI tries to feel like a HUD rather than a debug screen — bounding boxes re
 
 ## Getting started
 
-**Prerequisites:** Node 18+, Yarn, Python 3.11+, and a running MongoDB instance. If you don't want to set up Mongo, just comment out the `db.detections.insert_one` call in `server.py`.
+**Prerequisites:** Node 18+, Yarn, Python 3.11+
 
 **Backend**
 
@@ -60,7 +58,7 @@ echo "REACT_APP_BACKEND_URL=http://localhost:8001" > .env
 yarn start
 ```
 
-Open `http://localhost:3000` in your browser. To test on your phone over LAN, you'll need HTTPS for camera access on iOS — `ngrok http 3000` is the quickest path.
+Open `http://localhost:3000` in your browser. To test on your phone over LAN, you'll need HTTPS for camera access.
 
 ## How it works
 
@@ -104,4 +102,4 @@ COCO-SSD knows 80 classes. It won't recognize "mango," "samosa," or "laptop char
 
 ## License
 
-MIT — do whatever you want with it.
+MIT - do whatever you want with it.
